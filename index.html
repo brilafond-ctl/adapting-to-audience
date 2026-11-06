@@ -182,7 +182,7 @@
     </select>
     <button class="ghost" id="addCardBtn">+ Add card</button>
   </div>
-  <p class="add-card-hint">A custom card is added to the deck above. Drag it into a pile like any other card, and it will then be included when you build the summary.</p>
+  <p class="add-card-hint">A custom card is added to the deck above (not directly to the summary). Drag it into a pile like any other card, and it will then be included when you build the summary.</p>
   <textarea id="summaryText" readonly placeholder="Click 'Build Summary' above once you've sorted your cards..."></textarea>
 </div>
 
@@ -278,14 +278,32 @@ var strategyList = [
 var cards = [];
 var idCounter = 0;
 
-function buildCardBank(){
-  var bank = [];
-  for (var i=0;i<audienceList.length;i++){ bank.push({type:"audience", text:audienceList[i]}); }
-  for (var j=0;j<mediaList.length;j++){ bank.push({type:"media", text:mediaList[j]}); }
-  for (var k=0;k<strategyList.length;k++){
-    bank.push({type:"strategy", term:strategyList[k].term, explanation:strategyList[k].explanation, revealed:false});
+function shuffleArray(arr){
+  for (var m = arr.length - 1; m > 0; m--){
+    var n = Math.floor(Math.random() * (m + 1));
+    var tmp = arr[m]; arr[m] = arr[n]; arr[n] = tmp;
   }
-  return bank;
+  return arr;
+}
+
+function buildCardBank(){
+  // Build each type as its own group, shuffle within the group, then
+  // concatenate groups in a fixed order (audience, media, strategy) so the
+  // deck visually clusters by color before anyone starts sorting.
+  var audienceCards = [];
+  for (var i=0;i<audienceList.length;i++){ audienceCards.push({type:"audience", text:audienceList[i]}); }
+  var mediaCards = [];
+  for (var j=0;j<mediaList.length;j++){ mediaCards.push({type:"media", text:mediaList[j]}); }
+  var strategyCards = [];
+  for (var k=0;k<strategyList.length;k++){
+    strategyCards.push({type:"strategy", term:strategyList[k].term, explanation:strategyList[k].explanation, revealed:false});
+  }
+
+  shuffleArray(audienceCards);
+  shuffleArray(mediaCards);
+  shuffleArray(strategyCards);
+
+  return audienceCards.concat(mediaCards, strategyCards);
 }
 
 function makeCardEl(card){
@@ -349,10 +367,6 @@ function resetCards(){
     c.id = 'c' + (idCounter++);
     c.pile = null;
     cards.push(c);
-  }
-  for (var m = cards.length - 1; m > 0; m--){
-    var n = Math.floor(Math.random() * (m + 1));
-    var tmp = cards[m]; cards[m] = cards[n]; cards[n] = tmp;
   }
   renderAll();
 }
