@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Communication Strategy Card Sort</title>
+<style>
+  :root{
+    --audience:#60a5fa;
+    --media:#7e22ce;
+    --strategy:#f472b6;
+    --bg:#f6f5f2;
+    --ink:#1f2430;
+    --paper:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    background:linear-gradient(135deg,#0b3d91,#1e63c9 60%,#3aa0ff);
+    color:white;
+    padding:20px 28px 16px;
+  }
+  header h1{margin:0 0 4px; font-size:1.4rem;}
+  header p{margin:0; opacity:.9; font-size:.9rem;}
+
+  .controls{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    padding:12px 24px; background:white; border-bottom:1px solid #ddd;
+    position:sticky; top:0; z-index:20;
+  }
+  .controls label{font-size:.82rem; font-weight:600; margin-right:4px;}
+  select, button, input[type=text]{
+    font-size:.85rem; padding:6px 10px; border-radius:6px; border:1px solid #ccc;
+    background:white; cursor:pointer;
+  }
+  button.primary{background:#0b3d91; color:white; border:none;}
+  button.primary:hover{background:#0a3277;}
+  button.ghost{background:transparent;}
+  button.ghost:hover{background:#eee;}
+
+  .scenario-box{
+    margin:16px 24px 0; padding:20px 24px; background:#fff8e1;
+    border-left:6px solid #e0a300; border-radius:8px; font-size:1.08rem;
+    line-height:1.5; max-width:1100px;
+  }
+  .scenario-box strong{display:block; margin-bottom:8px; font-size:1.25rem;}
+
+  .legend{display:flex; gap:16px; padding:10px 24px 0; font-size:.78rem; flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+  .deck-wrap{padding:10px 24px 4px;}
+  .deck{
+    display:flex; flex-wrap:wrap; gap:14px; min-height:70px;
+    padding:14px; background:#eef0ef; border-radius:10px; border:2px dashed #c7cbc9;
+  }
+  .board{
+    display:flex; gap:16px; padding:16px 24px 20px; align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .pile{
+    flex:1; min-width:260px; background:var(--paper); border-radius:12px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); padding:10px; min-height:260px;
+  }
+  .pile h3{
+    margin:0 0 8px; font-size:1rem; text-align:center; padding:6px;
+    border-radius:8px;
+  }
+  .pile.likely h3{background:#dcfce7; color:#166534;}
+  .pile.might h3{background:#fef9c3; color:#854d0e;}
+  .pile.not h3{background:#fee2e2; color:#991b1b;}
+  .pile-body{min-height:200px; padding:4px; border-radius:8px;}
+  .pile-body.dragover{background:#e8f0ff; outline:2px dashed #93c5fd;}
+  .deck.dragover{background:#e2e5e3;}
+
+  .card{
+    user-select:none; cursor:grab; background:white; border-radius:10px;
+    padding:14px 16px; font-size:1rem; line-height:1.4; width:210px;
+    box-shadow:0 2px 5px rgba(0,0,0,.15); border-left:8px solid #999;
+    touch-action:none;
+  }
+  .card.dragging{opacity:.4;}
+  .card[data-type="audience"]{border-left-color:var(--audience);}
+  .card[data-type="media"]{border-left-color:var(--media);}
+  .card[data-type="strategy"]{border-left-color:var(--strategy); cursor:pointer;}
+  .card small{display:block; margin-top:6px; font-size:.75rem; text-transform:uppercase; opacity:.6; letter-spacing:.04em;}
+  .card .explanation{display:block; margin-top:8px; font-weight:400; font-size:.88rem; color:#444; border-top:1px dashed #ddd; padding-top:7px;}
+  .card .term{font-weight:700;}
+  .card .hint{display:block; margin-top:6px; font-size:.75rem; color:#aaa; font-style:italic;}
+
+  .pile-body .card{width:100%; margin-bottom:10px;}
+
+  .summary-action{
+    display:flex; justify-content:center; padding:0 24px 20px;
+  }
+  .summary-action button{
+    font-size:1rem; padding:12px 28px;
+  }
+
+  .summary-box{
+    margin:0 24px 30px; background:white; border-radius:10px; padding:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
+  }
+  .summary-box textarea{
+    width:100%; min-height:140px; font-family:monospace; font-size:.78rem;
+    border:1px solid #ddd; border-radius:6px; padding:8px;
+  }
+  .add-card{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+  .add-card-hint{font-size:.75rem; color:#777; margin:4px 0 10px;}
+  footer{text-align:center; font-size:.75rem; color:#888; padding:10px 0 24px;}
+  #diag{font-size:.7rem; color:#999; text-align:center; padding-bottom:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Communication Strategy Card Sort</h1>
+  <p>Drag cards from the deck into the pile that fits best for your scenario. Tap/click a pink strategy card to reveal its explanation.</p>
+</header>
+
+<div class="controls">
+  <label for="scenario">Scenario (randomly assigned):</label>
+  <select id="scenario"></select>
+  <button class="ghost" id="rerollScenario">New random scenario</button>
+
+  <label for="typeFilter">Show:</label>
+  <select id="typeFilter">
+    <option value="all">All card types</option>
+    <option value="audience">Audiences only</option>
+    <option value="media">Medium/Format only</option>
+    <option value="strategy">Strategies only</option>
+  </select>
+
+  <button class="ghost" id="resetBtn">Reset / Reshuffle cards</button>
+</div>
+
+<div class="scenario-box" id="scenarioText"></div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#60a5fa"></i> Audience</span>
+  <span><i class="dot" style="background:#7e22ce"></i> Medium/Format</span>
+  <span><i class="dot" style="background:#f472b6"></i> Strategy (click to reveal)</span>
+</div>
+
+<div class="deck-wrap">
+  <div class="deck" id="deck"></div>
+</div>
+<div id="diag"></div>
+
+<div class="board">
+  <div class="pile likely">
+    <h3>Likely to Apply</h3>
+    <div class="pile-body" id="pile-likely" data-pile="Likely to Apply"></div>
+  </div>
+  <div class="pile might">
+    <h3>Might Apply</h3>
+    <div class="pile-body" id="pile-might" data-pile="Might Apply"></div>
+  </div>
+  <div class="pile not">
+    <h3>Would Not Apply</h3>
+    <div class="pile-body" id="pile-not" data-pile="Would Not Apply"></div>
+  </div>
+</div>
+
+<div class="summary-action">
+  <button class="primary" id="summaryBtn">Build Summary</button>
+</div>
+
+<div class="summary-box">
+  <strong>Group Summary (copy into your slide or chat)</strong>
+  <div class="add-card" style="margin-top:8px;">
+    <input type="text" id="newCardText" placeholder="Add a custom card...">
+    <select id="newCardType">
+      <option value="audience">Audience</option>
+      <option value="media">Medium/Format</option>
+      <option value="strategy">Strategy</option>
+    </select>
+    <button class="ghost" id="addCardBtn">+ Add card</button>
+  </div>
+  <p class="add-card-hint">A custom card is added to the deck above (not directly to the summary). Drag it into a pile like any other card, and it will then be included when you build the summary.</p>
+  <textarea id="summaryText" readonly placeholder="Click 'Build Summary' above once you've sorted your cards..."></textarea>
+</div>
+
+<footer>Boise State AI - Card sort tool, vibe-coded for the training activity. State is not saved to a server; refreshing the page reshuffles cards and may reassign the scenario.</footer>
+
+<script>
+try {
+
+var scenarios = [
+  { key:"water", title:"Water Quality Contaminant Notice",
+    text:"Routine environmental testing has detected elevated levels of a regulated contaminant in a local watershed. While there is no immediate public health emergency, official public notice is legally required within 48 hours. Frontline agency staff expect a high volume of phone calls from concerned residents, business owners, and local media." },
+  { key:"portal", title:"Statewide System Portal Migration",
+    text:"The state is rolling out a mandatory digital licensing and time-tracking portal for all agency personnel and external applicants. The new system significantly alters how records are submitted and processed, and early pilot testing revealed widespread user confusion. Leadership expects full compliance by the end of the year despite ongoing user frustration." },
+  { key:"incident", title:"Field Operation Critical Incident",
+    text:"An unexpected dispute occurred during a joint multi-agency field operation, leading to public speculation and viral rumors across social media. Agency employees involved in the operation are seeking clear internal guidance, while media outlets and legislative leaders are requesting formal briefings and official public statements." },
+  { key:"closure", title:"Major Facility and Access Road Closure",
+    text:"A popular state-managed recreation area and primary access road are being closed indefinitely due to sudden environmental degradation and structural instability. The immediate closure disrupts local tourism, impacts nearby commercial businesses, and alters daily field operations for regional agency personnel." },
+  { key:"cyber", title:"Permitting System Cybersecurity Incident",
+    text:"An online permitting portal has been taken offline following a suspected cybersecurity incident. While there is currently no evidence that personal data was accessed, an official investigation is underway. Residents and commercial entities who rely on the portal daily to submit applications and process payments are experiencing operational delays." },
+  { key:"budget", title:"Mid-Year Agency Budget Reduction",
+    text:"Your agency must reduce its operating costs by 8 percent for the upcoming fiscal year. Leadership is evaluating shorter public counter hours, reduced program offerings, and a temporary hiring freeze. Employees fear potential layoffs, residents worry about degraded public services, and elected officials demand detailed explanations prior to the upcoming public budget hearing." },
+  { key:"land", title:"Public Land Development Rumors",
+    text:"Leaked internal site maps have sparked widespread public rumors that a parcel of state-managed recreation land is being quietly rezoned for private sale to a technology corporation for a data center. Environmental advocacy groups are organizing public protests, local residents are demanding immediate answers from county commissioners, and agency field staff are receiving angry inquiries from visitors." },
+  { key:"consolidation", title:"Agency Consolidation and Organizational Restructure",
+    text:"A legislative directive has mandated that a specialized state agency be absorbed into a larger cabinet-level department by the start of the next fiscal year. While official announcements state that there are no anticipated layoffs, employees fear eventual position redundancies, division heads worry about lost autonomy, and public stakeholders are concerned that specialized agency services will be diluted." },
+  { key:"transfer", title:"Major Program Transfer Between Agencies",
+    text:"Statutory changes have transferred administrative authority over a 45 million dollar public infrastructure grant program from the current administrating agency to a partner department. Staff who currently manage the grant workflow face immediate operational uncertainty, existing municipal grant recipients are confused about pending applications, and agency leadership must deliver a smooth transition plan to legislative auditors." },
+  { key:"departure", title:"Executive Leadership Departure",
+    text:"The executive director of a high-profile state division has abruptly resigned effective immediately, with no official explanation provided beyond a brief administrative statement. Internal staff are anxious about shifting agency priorities, local news outlets are speculating about potential mismanagement, and legislative oversight chairs are requesting a private briefing regarding leadership continuity." }
+];
+
+var audienceList = [
+  "General public",
+  "Residents directly impacted",
+  "Agency employees",
+  "Local media",
+  "Community partners",
+  "Local business owners",
+  "People with limited English proficiency",
+  "People with access needs or disabilities",
+  "Elected officials and legislative leadership",
+  "Governor's office and executive leadership",
+  "Advocacy groups and non-profits",
+  "Public-facing and frontline staff",
+  "Rural residents",
+  "New immigrant and refugee residents",
+  "Seniors and older adults",
+  "Low income and fixed income residents"
+];
+
+var mediaList = [
+  "Email",
+  "Memo",
+  "Webpage",
+  "Press release",
+  "Social media post",
+  "Frequently asked questions (FAQ) document",
+  "Text message alert",
+  "Press conference",
+  "Letter or mailer",
+  "One-page fact sheet",
+  "Infographic",
+  "Signage (at a physical location)",
+  "Recorded video message",
+  "Media interview",
+  "Flyers",
+  "Job aid"
+];
+
+var strategyList = [
+  {term:"Lead with action", explanation:"State what people should do before providing background or explanation. (BLUF)"},
+  {term:"Sequence information", explanation:"Tell the audience what happened, what it means, and what's next."},
+  {term:"Use visuals", explanation:"Convey meaning using clear images."},
+  {term:"Make it skimmable", explanation:"Use headings, bullet points, and plain language."},
+  {term:"Distinguish facts from unknowns", explanation:"State what has been confirmed, what is being investigated, and when to expect updates."},
+  {term:"Provide a reliable source", explanation:"Direct people to an official webpage, hotline, and/or point of contact."},
+  {term:"Acknowledge concerns", explanation:"Recognize the impact on people while avoiding unsupported claims."},
+  {term:"Demonstrate accountability", explanation:"Explain who is responsible for decisions, investigation, and/or follow-up."},
+  {term:"Show empathy", explanation:"Name the inconvenience, uncertainty, fear, and/or disruption people may be experiencing."},
+  {term:"Be transparent about limitations", explanation:"Explain what cannot yet be shared and why."},
+  {term:"Invite questions and/or feedback", explanation:"Provide a channel for audience responses."},
+  {term:"Explain the why", explanation:"Connect the requested action or decision to public value, safety, and/or service."},
+  {term:"Use appropriate evidence", explanation:"Provide relevant data, standards, and/or expert guidance."},
+  {term:"Anticipate objections", explanation:"Address likely concerns respectfully."},
+  {term:"Offer options and/or alternatives", explanation:"Give people practical choices when possible."},
+  {term:"Provide an easy next step", explanation:"Include dates, links, contact information, and/or clear instructions."},
+  {term:"Protect confidential information", explanation:"Exclude personnel, legal, security, and/or personal details that should not be shared."},
+  {term:"Avoid over-promising", explanation:"Do not promise outcomes that cannot be guaranteed."},
+  {term:"Use accessible communication", explanation:"Consider plain language, translation, visual accessibility, and/or multiple channels."},
+  {term:"Carefully correct misinformation", explanation:"State the accurate information without unnecessarily amplifying rumors."}
+];
+
+var cards = [];
+var idCounter = 0;
+
+function buildCardBank(){
+  var bank = [];
+  for (var i=0;i<audienceList.length;i++){ bank.push({type:"audience", text:audienceList[i]}); }
+  for (var j=0;j<mediaList.length;j++){ bank.push({type:"media", text:mediaList[j]}); }
+  for (var k=0;k<strategyList.length;k++){
+    bank.push({type:"strategy", term:strategyList[k].term, explanation:strategyList[k].explanation, revealed:false});
+  }
+  return bank;
+}
+
+function makeCardEl(card){
+  var el = document.createElement('div');
+  el.className = 'card';
+  el.setAttribute('data-type', card.type);
+  el.setAttribute('data-id', card.id);
+
+  if (card.type === 'strategy'){
+    if (card.revealed){
+      el.innerHTML = '<span class="term">' + card.term + '</span><span class="explanation">' + card.explanation + '</span><small>strategy</small>';
+    } else {
+      el.innerHTML = '<span class="term">' + card.term + '</span><span class="hint">tap to reveal</span><small>strategy</small>';
+    }
+  } else {
+    var label = (card.type === 'media') ? 'medium/format' : card.type;
+    el.innerHTML = card.text + '<small>' + label + '</small>';
+  }
+  attachDrag(el, card);
+  return el;
+}
+
+function renderDeck(){
+  var deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  var filter = document.getElementById('typeFilter').value;
+  for (var i=0;i<cards.length;i++){
+    var c = cards[i];
+    if (c.pile === null && (filter === 'all' || c.type === filter)){
+      deck.appendChild(makeCardEl(c));
+    }
+  }
+}
+
+function renderPiles(){
+  var keys = ['likely','might','not'];
+  for (var k=0;k<keys.length;k++){
+    var body = document.getElementById('pile-'+keys[k]);
+    var pileName = body.getAttribute('data-pile');
+    body.innerHTML = '';
+    for (var i=0;i<cards.length;i++){
+      if (cards[i].pile === pileName){
+        body.appendChild(makeCardEl(cards[i]));
+      }
+    }
+  }
+}
+
+function renderAll(){
+  renderDeck();
+  renderPiles();
+  var d = document.getElementById('diag');
+  if (d) { d.textContent = 'Cards loaded: ' + cards.length; }
+}
+
+function resetCards(){
+  var bank = buildCardBank();
+  cards = [];
+  for (var i=0;i<bank.length;i++){
+    var c = bank[i];
+    c.id = 'c' + (idCounter++);
+    c.pile = null;
+    cards.push(c);
+  }
+  for (var m = cards.length - 1; m > 0; m--){
+    var n = Math.floor(Math.random() * (m + 1));
+    var tmp = cards[m]; cards[m] = cards[n]; cards[n] = tmp;
+  }
+  renderAll();
+}
+
+// Pointer-based drag and click-to-flip
+var dragEl = null, dragCard = null, offsetX = 0, offsetY = 0;
+var startX = 0, startY = 0, dragStarted = false;
+var DRAG_THRESHOLD = 6;
+
+function attachDrag(el, card){
+  el.addEventListener('pointerdown', function(e){
+    dragEl = el;
+    dragCard = card;
+    dragStarted = false;
+    startX = e.clientX; startY = e.clientY;
+    try { el.setPointerCapture(e.pointerId); } catch(err) {}
+    var rect = el.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+  });
+}
+
+function beginDrag(e){
+  dragStarted = true;
+  dragEl.classList.add('dragging');
+  var rect = dragEl.getBoundingClientRect();
+  dragEl.style.position = 'fixed';
+  dragEl.style.zIndex = 1000;
+  dragEl.style.width = rect.width + 'px';
+  document.body.appendChild(dragEl);
+  moveTo(e.clientX, e.clientY);
+}
+
+function moveTo(x, y){
+  if (!dragEl) return;
+  dragEl.style.left = (x - offsetX) + 'px';
+  dragEl.style.top = (y - offsetY) + 'px';
+}
+
+document.addEventListener('pointermove', function(e){
+  if (!dragEl) return;
+  if (!dragStarted){
+    var dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD){
+      beginDrag(e);
+    } else {
+      return;
+    }
+  }
+  moveTo(e.clientX, e.clientY);
+  var zones = document.querySelectorAll('.pile-body, .deck');
+  for (var i=0;i<zones.length;i++){ zones[i].classList.remove('dragover'); }
+  var target = dropTargetAt(e.clientX, e.clientY);
+  if (target) target.classList.add('dragover');
+});
+
+document.addEventListener('pointerup', function(e){
+  if (!dragEl) return;
+
+  if (!dragStarted){
+    if (dragCard.type === 'strategy'){
+      dragCard.revealed = !dragCard.revealed;
+      renderAll();
+    }
+    dragEl = null; dragCard = null;
+    return;
+  }
+
+  var target = dropTargetAt(e.clientX, e.clientY);
+  var zones = document.querySelectorAll('.pile-body, .deck');
+  for (var i=0;i<zones.length;i++){ zones[i].classList.remove('dragover'); }
+
+  if (target){
+    if (target.classList.contains('deck')){
+      dragCard.pile = null;
+    } else {
+      dragCard.pile = target.getAttribute('data-pile');
+    }
+  }
+
+  if (dragEl && dragEl.parentNode){
+    dragEl.parentNode.removeChild(dragEl);
+  }
+
+  dragEl = null; dragCard = null; dragStarted = false;
+  renderAll();
+});
+
+function dropTargetAt(x, y){
+  var els = document.querySelectorAll('.pile-body, .deck');
+  for (var i=0;i<els.length;i++){
+    var r = els[i].getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return els[i];
+  }
+  return null;
+}
+
+function populateScenarioSelect(selectedKey){
+  var sel = document.getElementById('scenario');
+  sel.innerHTML = '';
+  for (var i=0;i<scenarios.length;i++){
+    var opt = document.createElement('option');
+    opt.value = scenarios[i].key;
+    opt.textContent = scenarios[i].title;
+    sel.appendChild(opt);
+  }
+  sel.value = selectedKey;
+}
+
+function findScenario(key){
+  for (var i=0;i<scenarios.length;i++){
+    if (scenarios[i].key === key) return scenarios[i];
+  }
+  return scenarios[0];
+}
+
+function showScenario(key){
+  var s = findScenario(key);
+  document.getElementById('scenarioText').innerHTML = '<strong>' + s.title + '</strong>' + s.text;
+}
+
+function assignRandomScenario(){
+  var pick = scenarios[Math.floor(Math.random() * scenarios.length)];
+  populateScenarioSelect(pick.key);
+  showScenario(pick.key);
+}
+
+document.getElementById('scenario').addEventListener('change', function(e){ showScenario(e.target.value); });
+document.getElementById('rerollScenario').addEventListener('click', assignRandomScenario);
+document.getElementById('typeFilter').addEventListener('change', renderDeck);
+document.getElementById('resetBtn').addEventListener('click', resetCards);
+document.getElementById('summaryBtn').addEventListener('click', buildSummary);
+document.getElementById('addCardBtn').addEventListener('click', addCustomCard);
+
+function addCustomCard(){
+  var text = document.getElementById('newCardText').value;
+  text = text.replace(/^\s+|\s+$/g, '');
+  var type = document.getElementById('newCardType').value;
+  if (!text) return;
+  if (type === 'strategy'){
+    cards.push({type:type, term:text, explanation:'(custom card)', revealed:true, id:'c'+(idCounter++), pile:null});
+  } else {
+    cards.push({type:type, text:text, id:'c'+(idCounter++), pile:null});
+  }
+  document.getElementById('newCardText').value = '';
+  renderAll();
+}
+
+function buildSummary(){
+  var scenarioKey = document.getElementById('scenario').value;
+  var scenario = findScenario(scenarioKey);
+  var out = 'Scenario: ' + scenario.title + '\n\n';
+  var pileNames = ['Likely to Apply','Might Apply','Would Not Apply'];
+  for (var p=0;p<pileNames.length;p++){
+    var pileName = pileNames[p];
+    out += '--- ' + pileName + ' ---\n';
+    var found = false;
+    for (var i=0;i<cards.length;i++){
+      if (cards[i].pile === pileName){
+        found = true;
+        var c = cards[i];
+        if (c.type === 'strategy'){
+          out += '- [strategy] ' + c.term + '\n';
+        } else {
+          var label = (c.type === 'media') ? 'medium/format' : c.type;
+          out += '- [' + label + '] ' + c.text + '\n';
+        }
+      }
+    }
+    if (!found) out += '(none)\n';
+    out += '\n';
+  }
+  document.getElementById('summaryText').value = out;
+}
+
+assignRandomScenario();
+resetCards();
+
+} catch (err) {
+  document.body.innerHTML = '<pre style="padding:20px;color:red;white-space:pre-wrap;">Script error: ' + err.message + '</pre>';
+}
+</script>
+</body>
+</html>
